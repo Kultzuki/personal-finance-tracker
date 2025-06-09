@@ -200,8 +200,8 @@ This project is open source and available under the [MIT License](LICENSE).
 ## 👨‍💻 Developer
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
+- GitHub: [@yourusername](https://github.com/Kultzuki)
+- LinkedIn: [Your LinkedIn](https://www.linkedin.com/in/prashant-krishan-bharti/)
 - Portfolio: [yourwebsite.com](https://yourwebsite.com)
 
 ---
