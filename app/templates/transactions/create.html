@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Add Transaction - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Add Transaction
+                </h4>
+            </div>
+
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <!-- Transaction Type -->
+                    <div class="mb-4">
+                        {{ form.type.label(class="form-label fw-semibold") }}
+                        <div class="btn-group w-100" role="group">
+                            {% for value, label in form.type.choices %}
+                            <input type="radio" class="btn-check" name="type" id="type_{{ value }}" value="{{ value }}"
+                                   {{ 'checked' if form.type.data == value }} autocomplete="off">
+                            <label class="btn btn-outline-{{ 'success' if value == 'income' else 'danger' }}" for="type_{{ value }}">
+                                <i class="bi bi-{{ 'arrow-up-circle' if value == 'income' else 'arrow-down-circle' }} me-1"></i>
+                                {{ label }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.type.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.type.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label fw-semibold") }}
+                        {{ form.description(class="form-control form-control-lg", placeholder="What was this transaction for?") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.description.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="mb-3">
+                        {{ form.amount.label(class="form-label fw-semibold") }}
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text">$</span>
+                            {{ form.amount(class="form-control", placeholder="0.00", step="0.01") }}
+                        </div>
+                        {% if form.amount.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.amount.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category -->
+                    <div class="mb-3">
+                        {{ form.category.label(class="form-label fw-semibold") }}
+                        {{ form.category(class="form-select form-select-lg", id="categorySelect") }}
+                        {% if form.category.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.category.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Date -->
+                    <div class="mb-3">
+                        {{ form.date.label(class="form-label fw-semibold") }}
+                        {{ form.date(class="form-control form-control-lg") }}
+                        {% if form.date.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.date.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Notes (Optional) -->
+                    <div class="mb-4">
+                        {{ form.notes.label(class="form-label fw-semibold") }}
+                        {{ form.notes(class="form-control", rows="3", placeholder="Additional notes (optional)") }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.notes.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-secondary btn-lg me-md-2">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Entry Suggestions -->
+        <div class="card mt-4 border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-lightbulb me-1"></i>Quick Entry Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Common Income Categories:</strong>
+                        <ul class="list-unstyled small text-muted mt-1">
+                            <li>• Salary</li>
+                            <li>• Freelance</li>
+                            <li>• Investment</li>
+                            <li>• Other Income</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Common Expense Categories:</strong>
+                        <ul class="list-unstyled small text-muted mt-1">
+                            <li>• Food & Dining</li>
+                            <li>• Transportation</li>
+                            <li>• Shopping</li>
+                            <li>• Bills & Utilities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update category options based on transaction type
+document.addEventListener('DOMContentLoaded', function() {
+    const typeInputs = document.querySelectorAll('input[name="type"]');
+    const categorySelect = document.getElementById('categorySelect');
+
+    // Category mappings
+    const categories = {
+        income: [
+            'Salary',
+            'Freelance',
+            'Business',
+            'Investment',
+            'Gift',
+            'Other Income'
+        ],
+        expense: [
+            'Food & Dining',
+            'Transportation',
+            'Shopping',
+            'Entertainment',
+            'Bills & Utilities',
+            'Healthcare',
+            'Education',
+            'Travel',
+            'Other Expense'
+        ]
+    };
+
+    function updateCategories(type) {
+        // Clear current options
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+
+        // Add new options based on type
+        if (categories[type]) {
+            categories[type].forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+    }
+
+    // Listen for type changes
+    typeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.checked) {
+                updateCategories(this.value);
+            }
+        });
+    });
+
+    // Initialize with current selection
+    const checkedType = document.querySelector('input[name="type"]:checked');
+    if (checkedType) {
+        updateCategories(checkedType.value);
+    }
+
+    // Set default date to today
+    const dateInput = document.querySelector('input[name="date"]');
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+
+    // Format amount input
+    const amountInput = document.querySelector('input[name="amount"]');
+    if (amountInput) {
+        amountInput.addEventListener('blur', function() {
+            if (this.value && !isNaN(this.value)) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    }
+
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

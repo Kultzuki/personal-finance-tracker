@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated %}
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-house me-2"></i>Dashboard
+                    <small class="text-muted">Welcome back, {{ current_user.username }}!</small>
+                </h1>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('transactions.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Add Transaction
+                    </a>
+                    <a href="{{ url_for('goals.create') }}" class="btn btn-success">
+                        <i class="bi bi-bullseye me-1"></i>New Goal
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card income">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">Total Income</h6>
+                        <h3 class="mb-0">${{ "{:,.2f}".format(financial_summary.total_income) }}</h3>
+                        <small class="opacity-75">This month</small>
+                    </div>
+                    <i class="bi bi-arrow-up-circle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card expense">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">Total Expenses</h6>
+                        <h3 class="mb-0">${{ "{:,.2f}".format(financial_summary.total_expenses) }}</h3>
+                        <small class="opacity-75">This month</small>
+                    </div>
+                    <i class="bi bi-arrow-down-circle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card balance">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">Net Balance</h6>
+                        <h3 class="mb-0 {{ 'text-success' if financial_summary.net_balance >= 0 else 'text-danger' }}">
+                            ${{ "{:,.2f}".format(financial_summary.net_balance) }}
+                        </h3>
+                        <small class="opacity-75">Current period</small>
+                    </div>
+                    <i class="bi bi-wallet2 fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card goal">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">Active Goals</h6>
+                        <h3 class="mb-0">{{ goal_summary.active_goals }}</h3>
+                        <small class="opacity-75">{{ goal_summary.completed_goals }} completed</small>
+                    </div>
+                    <i class="bi bi-bullseye fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart me-2"></i>Spending by Category
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="spendingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>Income vs Expenses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="incomeExpenseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Recent Transactions -->
+    <div class="row">
+        <!-- Recent Transactions -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock me-2"></i>Recent Transactions
+                    </h5>
+                    <a href="{{ url_for('transactions.index') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Category</th>
+                                        <th>Amount</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                    <tr class="transaction-item {{ transaction.type }}">
+                                        <td>{{ transaction.date.strftime('%m/%d/%Y') }}</td>
+                                        <td>
+                                            <strong>{{ transaction.description }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ transaction.category }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold {{ 'text-success' if transaction.type == 'income' else 'text-danger' }}">
+                                                {{ '+' if transaction.type == 'income' else '-' }}${{ "{:,.2f}".format(transaction.amount) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ 'bg-success' if transaction.type == 'income' else 'bg-danger' }}">
+                                                <i class="bi bi-{{ 'arrow-up' if transaction.type == 'income' else 'arrow-down' }} me-1"></i>
+                                                {{ transaction.type.title() }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">No transactions yet</h5>
+                            <p class="text-muted">Start tracking your finances by adding your first transaction.</p>
+                            <a href="{{ url_for('transactions.create') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Add Transaction
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Summary -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bullseye me-2"></i>Goals Progress
+                    </h5>
+                    <a href="{{ url_for('goals.index') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if active_goals %}
+                        {% for goal in active_goals %}
+                        <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">{{ goal.name }}</h6>
+                                <span class="badge {{ 'bg-success' if goal.status == 'completed' else 'bg-warning' if goal.status == 'overdue' else 'bg-primary' }}">
+                                    {{ goal.status.title() }}
+                                </span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar {{ 'bg-success' if goal.status == 'completed' else 'bg-warning' if goal.status == 'overdue' else 'bg-primary' }}"
+                                     style="width: {{ goal.progress_percentage }}%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">
+                                    ${{ "{:,.2f}".format(goal.current_amount) }} / ${{ "{:,.2f}".format(goal.target_amount) }}
+                                </small>
+                                <small class="text-muted">{{ goal.progress_percentage }}%</small>
+                            </div>
+                            {% if goal.deadline %}
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>
+                                Due: {{ goal.deadline.strftime('%m/%d/%Y') }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-bullseye fs-1 text-muted mb-3"></i>
+                            <h6 class="text-muted">No goals set</h6>
+                            <p class="text-muted small">Set financial goals to track your progress.</p>
+                            <a href="{{ url_for('goals.create') }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Add Goal
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- Landing Page for Non-authenticated Users -->
+    <div class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4">Take Control of Your Finances</h1>
+            <p class="lead mb-4">Track expenses, set goals, and visualize your financial journey with our comprehensive personal finance tracker.</p>
+            <div class="mb-4">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg me-3">
+                    <i class="bi bi-person-plus me-2"></i>Get Started
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="mb-5">Why Choose Our Finance Tracker?</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-graph-up feature-icon"></i>
+                        <h5>Smart Analytics</h5>
+                        <p class="text-muted">Visualize your spending patterns with interactive charts and detailed reports.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-bullseye feature-icon"></i>
+                        <h5>Goal Tracking</h5>
+                        <p class="text-muted">Set financial goals and track your progress with milestone celebrations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-shield-check feature-icon"></i>
+                        <h5>Secure & Private</h5>
+                        <p class="text-muted">Your financial data is encrypted and stored securely with bank-level protection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-tags feature-icon"></i>
+                        <h5>Category Management</h5>
+                        <p class="text-muted">Organize transactions with custom categories for better insights.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-phone feature-icon"></i>
+                        <h5>Mobile Responsive</h5>
+                        <p class="text-muted">Access your finances anywhere with our fully responsive design.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-clock-history feature-icon"></i>
+                        <h5>Real-time Updates</h5>
+                        <p class="text-muted">See your financial picture update instantly as you add transactions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if current_user.is_authenticated %}
+<script>
+// Load chart data and render charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Load spending chart
+    fetch('{{ url_for("charts.api_spending_by_category") }}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.amounts,
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#4facfe', '#00f2fe',
+                            '#fa709a', '#fee140', '#a8edea', '#fed6e3'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        });
+
+    // Load income vs expense chart
+    fetch('{{ url_for("charts.api_income_vs_expenses") }}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.months,
+                    datasets: [{
+                        label: 'Income',
+                        data: data.income,
+                        backgroundColor: '#4facfe',
+                        borderRadius: 5
+                    }, {
+                        label: 'Expenses',
+                        data: data.expenses,
+                        backgroundColor: '#fa709a',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+});
+</script>
+{% endif %}
+{% endblock %}
